@@ -20,7 +20,8 @@ pub trait ExtendedPerms: PermissionsExt {
     /// permissions. The group has read permissions, and others have write
     /// permissions (a particularly bad configuration mind you, but good
     /// for illustratiion)
-    fn as_ascii(&self) -> AsciiString;
+    fn to_ascii(&self) -> AsciiString;
+    fn to_oct_string(&self) -> String;
     fn is_file(&self) -> bool;
     fn is_dir(&self) -> bool;
     fn is_link(&self) -> bool;
