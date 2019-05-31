@@ -1,8 +1,7 @@
 use std::fs::Permissions;
 use std::os::unix::fs::PermissionsExt;
 pub use crate::ExtendedPerms;
-use ascii::{AsciiString, AsciiStr, AsciiChar};
-use crate::constants::*;
+use crate::{ AsciiString, AsciiStr, AsciiChar, constants::* };
 
 
 impl ExtendedPerms for Permissions {
@@ -20,7 +19,6 @@ impl ExtendedPerms for Permissions {
 
     fn is_dir(&self) -> bool {
         S_IFDIR & self.mode() > 0
-
     }
 
      fn is_link(&self) -> bool {
