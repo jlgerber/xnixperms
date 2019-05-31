@@ -9,8 +9,13 @@ impl ExtendedPerms for Permissions {
         self.mode() & !S_IFMT
     }
 
-    fn as_ascii(&self) -> AsciiString {
+    fn to_ascii(&self) -> AsciiString {
         pretty_perms(self.mode())
+    }
+
+    fn to_oct_string(&self) -> String {
+        let val = self.sugo();
+        format!("{:#o}", val)
     }
 
     fn is_file(&self) -> bool {
@@ -48,6 +53,9 @@ pub fn pretty_perms(val: u32) -> AsciiString {
     // Definition of stick bit, setuid and setgid taken from:
     // https://www.thegeekdiary.com/what-is-suid-sgid-and-sticky-bit/
     let perms = AsciiStr::from_ascii("rwxrwxrwx").unwrap();
+
+    let is_dir = val & S_IFDIR > 0;
+
     let val = val & !S_IFMT;
     // initialize the fold with an AsciiString with 10 elements. The
     // first element represents the sticky bit. We initialize the last 9
@@ -67,9 +75,14 @@ pub fn pretty_perms(val: u32) -> AsciiString {
     t refers to when the owner execute permissions are on.
     */
 
-    if (val & S_ISVTX) > 0 {
-        out[0] = if out[3] == AsciiChar::Minus { AsciiChar::T } else { AsciiChar::t };
+    if is_dir {
+        out[0] = AsciiChar::d;
+        // sticky bit only relevant for directories
+        if (val & S_ISVTX) > 0 {
+            out[9] = if out[9] == AsciiChar::Minus { AsciiChar::T } else { AsciiChar::t };
+        }
     }
+
     /*
     The setgid permission displays as an “s” in the group’s execute field.
     If a lowercase letter “l” appears in the group’s execute field,
@@ -90,6 +103,16 @@ pub fn pretty_perms(val: u32) -> AsciiString {
     out
 }
 
+/// Get the bits involved in determining the file permissions.
+/// That would be sticky/sgid/suid and owner, group, other bits
+pub fn file_perms(input: u32) -> u32 {
+    !S_IFMT & input
+}
+
+/// Get the bits involved in determining file type
+pub fn file_type(input: u32) -> u32 {
+    S_IFMT & input
+}
 
 #[cfg(test)]
 mod tests {
@@ -329,15 +352,20 @@ mod tests {
         assert_eq!(pmode & !S_IFMT, 0o644);
     }
 
-/// Get the bits involved in determining the file permissions.
-/// That would be sticky/sgid/suid and owner, group, other bits
-pub fn file_perms(input: u32) -> u32 {
-    !S_IFMT & input
-}
-/// Get the bits involved in determining file type
-pub fn file_type(input: u32) -> u32 {
-    S_IFMT & input
-}
+    #[test]
+    fn test_permissions_get_oct_string() {
+        let fname = "test_permissions_get_oct_string.txt";
+        let  f = File::create(fname).unwrap();
+        let metadata = f.metadata().unwrap();
+        let  permissions = metadata.permissions();
+        //permissions.set_mode(0o777);
+        // so is it a u32 or an i32????
+        let pmode = permissions.mode();
+        let mode = permissions.to_oct_string();
+        std::fs::remove_file(fname).expect("unable to remove temp file");
+        assert_eq!(mode, String::from("0o644"));
+        assert_eq!(pmode & !S_IFMT, 0o644);
+    }
 
     #[test]
     fn test_file_perm_call_with_100644() {
